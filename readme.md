@@ -4,22 +4,6 @@ This ROS package provides a node `image_fusion_node.py` that takes a image topic
 
 The image fusion node is located in the `scripts` directory.
 
-To run, do the following in one terminal:
-
-```bash
-roslaunch abyss launch_fusion.launch
-```
-
-in another terminal, run the following:
-
-```bash
-roscd abyss/data
-rosbag play --clock case_study.bag
-
-```
-
-While a homography blend was trialed, I wasn't able to debug it in the time required.
-
 ## Install dependencies
 
 ```bash
@@ -66,6 +50,7 @@ mkdir src
 cd src
 # Initialise workspace
 catkin_init_workspace
+cd ~/catkin_ws/src
 git clone <this-repo>
 cd ~/catkin_ws
 
@@ -80,3 +65,30 @@ source ~/.bashrc
 echo "source $(pwd)/devel/setup.zsh" >> ~/.zshrc
 source ~/.zshrc
 ```
+
+## Building the node
+
+```bash
+cd ~/catkin_ws
+catkin_make
+```
+
+## Running the node
+
+To run the node, do the following in one terminal:
+
+```bash
+roslaunch abyss launch_fusion.launch
+```
+
+in another terminal, run the following:
+
+```bash
+roscd abyss/data
+rosbag play --clock case_study.bag
+
+```
+
+## Extensions
+
+While a homography blend was trialed, I wasn't able to debug it in the time required.
