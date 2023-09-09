@@ -1,3 +1,11 @@
+# ABYSS Coding Challenge
+
+This ROS package provides a node `image_fusion_node.py` that takes a image topics and merges them into a concatenated image.
+
+The image fusion node is located in the `scripts` directory.
+
+While a homography blend was trialed, I wasnt able to debug it in the time required.
+
 ## Install dependencies
 
 ```bash
