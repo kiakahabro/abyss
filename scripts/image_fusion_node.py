@@ -206,13 +206,21 @@ class ImageFusion:
                 raise ValueError(f"Expected image encoding to be bgr8, but got {img_msg.encoding}")
             images.append(self.bridge.imgmsg_to_cv2(img_msg, "bgr8"))
             
-        fused = self.fuse(images)
+        fused = self.fuseByStacking(images, [2,1,0])
         fused_msg = self.bridge.cv2_to_imgmsg(fused, "bgr8")
         self.pub.publish(fused_msg)
 
 
-    
-    def fuse(self, images: Any) -> Any:
+    def fuseByStacking(self, images: Any, stack_order: List[int] = None) -> Any:
+        if stack_order is None:
+            return cv2.hconcat(images)
+        else:
+            assert len(images) == len(stack_order), "Expected number of images to be equal to number of cameras"
+            image_sort = [images[i] for i in stack_order]
+            return cv2.hconcat(image_sort)
+
+
+    def fuseFromExtrinsics(self, images: Any) -> Any:
         assert len(images) == len(self.cameras), "Expected number of images to be equal to number of cameras"
         
         undistorted_images = [self.cameras[i].undistort(images[i]) for i in range(len(images))]
@@ -228,7 +236,6 @@ class ImageFusion:
         
         panorama = blend_warped_images(warped_imgs)
             
-
         return panorama
 
 
