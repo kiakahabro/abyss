@@ -51,7 +51,7 @@ cd src
 # Initialise workspace
 catkin_init_workspace
 cd ~/catkin_ws/src
-git clone <this-repo>
+git clone https://github.com/kiakahabro/abyss.git
 cd ~/catkin_ws
 
 # Build all packages
