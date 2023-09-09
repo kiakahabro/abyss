@@ -177,6 +177,8 @@ class ImageFusion:
         self.ts = message_filters.ApproximateTimeSynchronizer(self.subs, queue_size, time_slop, allow_headerless=True)
         self.ts.registerCallback(self.callback)
 
+
+        # Calculate the central camera
         rCNn_all = np.asarray([camera.getPosition() for camera in self.cameras])
         rCNn_mean = rCNn_all.mean(axis=1)
         err = rCNn_mean - rCNn_all.squeeze()

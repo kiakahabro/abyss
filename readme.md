@@ -4,7 +4,21 @@ This ROS package provides a node `image_fusion_node.py` that takes a image topic
 
 The image fusion node is located in the `scripts` directory.
 
-While a homography blend was trialed, I wasnt able to debug it in the time required.
+To run, do the following in one terminal:
+
+```bash
+roslaunch abyss launch_fusion.launch
+```
+
+in another terminal, run the following:
+
+```bash
+roscd abyss/data
+rosbag play --clock case_study.bag
+
+```
+
+While a homography blend was trialed, I wasn't able to debug it in the time required.
 
 ## Install dependencies
 
