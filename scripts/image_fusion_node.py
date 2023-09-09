@@ -48,7 +48,6 @@ def blend_warped_images(warped_images):
     panorama_height = warped_images[0].shape[0]
 
 
-
     # Create a blank panorama canvas
     panorama = np.zeros((panorama_height, panorama_width, 3), dtype=np.uint8)
 
@@ -71,7 +70,7 @@ def blend_warped_images(warped_images):
         mask = cv2.bitwise_or(mask, warped_img[:, :, 2])
 
         # Blend the warped image onto the panorama canvas using the binary mask
-        panorama= cv2.bitwise_and(panorama,panorama,mask=cv2.bitwise_not(mask)) + warped_img
+        panorama= cv2.bitwise_and(panorama, panorama, mask=cv2.bitwise_not(mask)) + warped_img
 
     return panorama
 
@@ -195,7 +194,7 @@ class ImageFusion:
         d = 1
         denom = (d + npn.T @ rCNn)
         
-        Hpc = Rpc - rCPp @  ((npn.T @ Rnc) /denom)
+        Hpc = Rpc - rCPp @  ((npn.T @ Rnc) / denom)
         return Hpc
 
 
@@ -206,7 +205,7 @@ class ImageFusion:
                 raise ValueError(f"Expected image encoding to be bgr8, but got {img_msg.encoding}")
             images.append(self.bridge.imgmsg_to_cv2(img_msg, "bgr8"))
             
-        fused = self.fuseByStacking(images, [2,1,0])
+        fused = self.fuseByStacking(images, [2, 1, 0])
         fused_msg = self.bridge.cv2_to_imgmsg(fused, "bgr8")
         self.pub.publish(fused_msg)
 
