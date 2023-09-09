@@ -1,5 +1,8 @@
 #! /usr/bin/env python
-from typing import Any, List
+import json
+import os
+from pathlib import Path
+from typing import Any, List, Tuple
 
 import cv2
 import message_filters
@@ -37,6 +40,41 @@ def euler_to_rot(euler_angles: np.ndarray) -> np.ndarray:
     yaw = euler_angles[2]
     Rnc = rot_z(yaw) @ rot_y(pitch) @ rot_x(roll)
     return Rnc
+
+
+def blend_warped_images(warped_images):
+    # Determine the dimensions of the panorama canvas
+    panorama_width = warped_images[0].shape[1]
+    panorama_height = warped_images[0].shape[0]
+
+
+
+    # Create a blank panorama canvas
+    panorama = np.zeros((panorama_height, panorama_width, 3), dtype=np.uint8)
+
+
+    # Blend each warped image onto the panorama canvas
+    for warped_img in warped_images:
+        assert panorama_width == warped_img.shape[1], "All warped images must have the same width"
+        assert panorama_height == warped_img.shape[0], "All warped images must have the same height"
+
+        # img2gray = cv2.cvtColor(warped_img,cv2.COLOR_BGR2GRAY)
+        # # Find the non-zero pixels in the warped image
+        # ret, mask = cv2.threshold(img2gray, 10, 255, cv2.THRESH_BINARY)
+
+        # mask_inv = cv2.bitwise_not(mask)
+        # # Blend the warped image onto the panorama canvas using the binary mask
+        # panorama_keep   = cv2.bitwise_and(panorama, panorama, mask=mask_inv)
+        # panorama_update = cv2.bitwise_and(warped_img, warped_img, mask=mask)
+        # panorama = cv2.add(panorama_keep, panorama_update)
+        mask = cv2.bitwise_or(warped_img[:, :, 0], warped_img[:, :, 1])
+        mask = cv2.bitwise_or(mask, warped_img[:, :, 2])
+
+        # Blend the warped image onto the panorama canvas using the binary mask
+        panorama= cv2.bitwise_and(panorama,panorama,mask=cv2.bitwise_not(mask)) + warped_img
+
+    return panorama
+
 
 class Camera:
     def __init__(self, image_topic, camera_name, cal_filepath: Path) -> None:
@@ -137,14 +175,61 @@ class ImageFusion:
         self.ts = message_filters.ApproximateTimeSynchronizer(self.subs, 10, 0.1, allow_headerless=True)
         self.ts.registerCallback(self.callback)
 
-    def callback(self, *args):
-        images = [self.bridge.imgmsg_to_cv2(img, "bgr8") for img in args]
+        rCNn_all = np.asarray([camera.getPosition() for camera in self.cameras])
+        rCNn_mean= rCNn_all.mean(axis=1)
+        err = rCNn_mean - rCNn_all.squeeze()
+        nerr = np.linalg.norm(err, axis=0)
+        central_cam_idx = np.argmin(nerr)
+
+        self.rPNn = cameras[central_cam_idx].getPosition()
+        self.Rnp = cameras[central_cam_idx].getRotation()
+
+        
+        
+    def calculateHomography(self, rCNn: np.ndarray, Rnc: np.ndarray) -> np.ndarray:
+        # Calculate the homography matrix
+
+        rCPp = self.Rnp.T @ (rCNn - self.rPNn)
+        Rpc = self.Rnp.T @ Rnc
+        npn  = -self.Rnp[:, [2]]
+        d = 1
+        denom = (d + npn.T @ rCNn)
+        
+        Hpc = Rpc - rCPp @  ((npn.T @ Rnc) /denom)
+        return Hpc
+
+
+    def callback(self, *image_msgs: Tuple[Image]):
+        images = []
+        for img_msg in image_msgs:
+            if img_msg.encoding != "bgr8":
+                raise ValueError(f"Expected image encoding to be bgr8, but got {img_msg.encoding}")
+            images.append(self.bridge.imgmsg_to_cv2(img_msg, "bgr8"))
+            
         fused = self.fuse(images)
         fused_msg = self.bridge.cv2_to_imgmsg(fused, "bgr8")
         self.pub.publish(fused_msg)
+
+
     
     def fuse(self, images: Any) -> Any:
-        return cv2.hconcat(images)
+        assert len(images) == len(self.cameras), "Expected number of images to be equal to number of cameras"
+        
+        undistorted_images = [self.cameras[i].undistort(images[i]) for i in range(len(images))]
+        panorama_width  = sum([ud_img.shape[1] for ud_img in undistorted_images]) 
+        panorama_height = max([ud_img.shape[0] for ud_img in undistorted_images]) 
+        panorama = np.zeros((panorama_height, panorama_width, 3), dtype=np.uint8)
+
+        warped_imgs = []
+        for i, img in enumerate(undistorted_images):
+            H = self.calculateHomography(self.cameras[i].getPosition(), self.cameras[i].getRotation())
+            warped_img = cv2.warpPerspective(img, H, (panorama_width, panorama_height))
+            warped_imgs.append(warped_img)
+        
+        panorama = blend_warped_images(warped_imgs)
+            
+
+        return panorama
 
 
 if __name__ == '__main__':
