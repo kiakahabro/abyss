@@ -171,11 +171,14 @@ class ImageFusion:
 
         # Subscribes to all topics and synchronizes them
         self.subs = [message_filters.Subscriber(camera.getImageTopic(), Image) for camera in self.cameras]
-        self.ts = message_filters.ApproximateTimeSynchronizer(self.subs, 10, 0.1, allow_headerless=True)
+        
+        queue_size = 10
+        time_slop = 0.1
+        self.ts = message_filters.ApproximateTimeSynchronizer(self.subs, queue_size, time_slop, allow_headerless=True)
         self.ts.registerCallback(self.callback)
 
         rCNn_all = np.asarray([camera.getPosition() for camera in self.cameras])
-        rCNn_mean= rCNn_all.mean(axis=1)
+        rCNn_mean = rCNn_all.mean(axis=1)
         err = rCNn_mean - rCNn_all.squeeze()
         nerr = np.linalg.norm(err, axis=0)
         central_cam_idx = np.argmin(nerr)
