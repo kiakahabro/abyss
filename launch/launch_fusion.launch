@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="run_offline"             default="true" />
+
+    <!-- Use simulation time -->
+    <param name="use_sim_time" value="$(arg run_offline)" />
+
+    <!-- VISUALISATION -->
+    <node pkg="rviz" type="rviz" name="VisualiseData" args="-d $(find abyss)/rviz/image_fusion.rviz"/>
+    <!-- VISUALISATION -->
+
+    <!-- Use image_fusion_node -->
+    <node pkg="abyss" 
+        type="image_fusion_node.py" 
+        name="image_fusion_node" 
+        output="screen" >
+    </node>
+    
+</launch>
